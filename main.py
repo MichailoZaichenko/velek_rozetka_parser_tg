@@ -1,42 +1,42 @@
-# Импортируем необходимые библиотеки
-import requests
 from bs4 import BeautifulSoup
 import telebot
 from telebot import types
+import time
+import random
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
-import time
-import random
-file = open('./mytoken.txt')
-mytoken = file.read()
-# Передаем сюда токен, который получили от FatherBot
-bot = telebot.TeleBot(mytoken)
+import requests
 
-options = Options()
-options.add_argument('--headless')  # Run in headless mode (without opening a browser window)
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=options)
-driver.get('https://www.google.com/')
+# Открываем файл с токеном и читаем его
+with open('./mytoken.txt') as file:
+    mytoken = file.read().strip()
+
+# Создаем объект бота
+bot = telebot.TeleBot(mytoken)
 
 data = []
 
 # Задаем URL сайта и параметры поиска
 url = 'https://rozetka.com.ua/bicycles/c83884/page={page}/'
 params = {"search_text": "велосипед"}
-for page in range(1, 11):
+
+for page in range(1, 2):
     try:
-        # Load the page using Selenium WebDriver
-        driver.get(url.format(page=page, **params))
+        # Загружаем страницу с помощью Selenium WebDriver
+        response = requests.get(url.format(page=page, **params))
 
-        # Extract the page content after it has been rendered
-        page_content = driver.page_source
+        # Ждем, пока страница загрузится (можно настроить время ожидания)
+        # time.sleep(random.randint(1, 6))
+        if response.status_code == 200:
+            page_content = response.content
+            # Create BeautifulSoup object and continue with your parsing logic
+            soup = BeautifulSoup(page_content, 'html.parser')
+        # Ваша логика парсинга здесь...
 
-        # Create BeautifulSoup object for parsing
-        soup = BeautifulSoup(page_content, 'html.parser')
-
-        # Scraping logic goes here...
         products = soup.find_all("div", class_="goods-tile__inner")
+
         # Создаем пустой список для хранения данных о товарах
         if products:
             for product in products:
@@ -46,17 +46,15 @@ for page in range(1, 11):
                 title = product.find("span", class_="goods-tile__title").text
                 # Находим цену товара
                 price = product.find("span", class_="goods-tile__price-value").text
+
+                link = product.find("a", class_="goods-tile__picture ng-star-inserted").get("href")
                 # Добавляем данные о товаре в список data
-                data.append({"image": image, "title": title, "price": price})
-                time.sleep(random(1, 6))
+                data.append({"image": image, "title": title, "price": price, "link":link})
         else:
             print('net')
 
     except Exception as e:
         print('Error occurred:', e)
-
-# Clean up the WebDriver instance
-driver.quit()
 
 # Функция для обработки команды /start
 @bot.message_handler(commands=["start"])
@@ -92,7 +90,7 @@ def goodsChapter(message):
         # Отправляем фотографию товара по ссылке из данных
         bot.send_photo(message.chat.id, item["image"])
         # Отправляем название и цену товара из данных
-        bot.send_message(message.chat.id, f"🔹 Товар #{i + 1}: {item['title']}\nЦена: {item['price']} грн.")
+        bot.send_message(message.chat.id, f"🔹 Товар #{i + 1}: {item['title']}\nЦена: {item['price']} грн. \nТовар в магазине: {item['link']}")
 
 # Функция для обработки сообщений с текстом "🔹 Товар #" (где # - номер от 1 до 4)
 @bot.message_handler(func=lambda message: message.text.startswith('🔹 Товар'))
@@ -121,5 +119,5 @@ def backToMenu(message):
     # Отправляем сообщение с прикрепленной к нему кнопкой
     bot.send_message(message.chat.id, 'Вы вернулись в главное меню.', reply_markup=markup)
 
-# Запускаем бота
-bot.polling()
+if __name__ == "__main__":
+    bot.polling()
