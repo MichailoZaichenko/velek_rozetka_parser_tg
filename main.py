@@ -104,7 +104,7 @@ def showProduct(message):
         # Отправляем фотографию товара по ссылке из данных
         bot.send_photo(message.chat.id, item["image"])
         # Отправляем название и цену товара из данных
-        bot.send_message(message.chat.id, f"{item['title']}\nЦена: {item['price']} грн.")
+        bot.send_message(message.chat.id, f"{item['title']}\nЦена: {item['price']} грн.\nТовар в магазине: {item['link']}")
     else:
         # Отправляем сообщение об ошибке
         bot.send_message(message.chat.id, "Такого товара нет в списке.")
