@@ -1,3 +1,5 @@
+import imghdr
+
 from bs4 import BeautifulSoup
 import telebot
 from telebot import types
@@ -88,7 +90,13 @@ def goodsChapter(message):
         # Получаем данные о товаре из списка data по номеру
         item = data[i]
         # Отправляем фотографию товара по ссылке из данных
-        bot.send_photo(message.chat.id, item["image"])
+        try:
+            # Отправляем фотографию товара по ссылке из данных
+            bot.send_photo(message.chat.id, item["image"])
+        except Exception as e:
+            # Handle the exception by providing a fallback option
+            bot.send_message(message.chat.id, "Unable to send the photo. Here is a default image:")
+            bot.send_photo(message.chat.id, 'https://cdn-icons-png.flaticon.com/512/482/482929.png')
         # Отправляем название и цену товара из данных
         bot.send_message(message.chat.id, f"🔹 Товар #{i + 1}: {item['title']}\nЦена: {item['price']} грн. \nТовар в магазине: {item['link']}")
 
@@ -101,8 +109,13 @@ def showProduct(message):
     if 0 <= number < len(data):
         # Получаем данные о товаре из списка data по номеру
         item = data[number]
-        # Отправляем фотографию товара по ссылке из данных
-        bot.send_photo(message.chat.id, item["image"])
+        try:
+            # Отправляем фотографию товара по ссылке из данных
+            bot.send_photo(message.chat.id, item["image"])
+        except Exception as e:
+            # Handle the exception by providing a fallback option
+            bot.send_message(message.chat.id, "Unable to send the photo. Here is a default image:")
+            bot.send_photo(message.chat.id, 'https://cdn-icons-png.flaticon.com/512/482/482929.png')
         # Отправляем название и цену товара из данных
         bot.send_message(message.chat.id, f"{item['title']}\nЦена: {item['price']} грн.\nТовар в магазине: {item['link']}")
     else:

@@ -1,3 +1,5 @@
+import imghdr
+
 from bs4 import BeautifulSoup
 import telebot
 from telebot import types
@@ -7,7 +9,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
-from requests_html import HTMLSession
 import requests
 
 # Открываем файл с токеном и читаем его
@@ -23,24 +24,17 @@ data = []
 url = 'https://rozetka.com.ua/bicycles/c83884/page={page}/'
 params = {"search_text": "велосипед"}
 
-timeout = 60  # Set the timeout value to 60 seconds
-response = requests.get('https://api.telegram.org', timeout=timeout)
-
 for page in range(1, 2):
     try:
-        # Загружаем страницу с помощью requests_html
-        session = HTMLSession()
-        response = session.get(url.format(page=page, **params))
+        # Загружаем страницу с помощью Selenium WebDriver
+        response = requests.get(url.format(page=page, **params))
 
         # Ждем, пока страница загрузится (можно настроить время ожидания)
         # time.sleep(random.randint(1, 6))
         if response.status_code == 200:
-            # Render the page to execute AJAX requests
-            response.html.render()
-
+            page_content = response.content
             # Create BeautifulSoup object and continue with your parsing logic
-            soup = BeautifulSoup(response.html.html, 'html.parser')
-        
+            soup = BeautifulSoup(page_content, 'html.parser')
         # Ваша логика парсинга здесь...
 
         products = soup.find_all("div", class_="goods-tile__inner")
@@ -96,7 +90,13 @@ def goodsChapter(message):
         # Получаем данные о товаре из списка data по номеру
         item = data[i]
         # Отправляем фотографию товара по ссылке из данных
-        bot.send_photo(message.chat.id, item["image"])
+        try:
+            # Отправляем фотографию товара по ссылке из данных
+            bot.send_photo(message.chat.id, item["image"])
+        except Exception as e:
+            # Handle the exception by providing a fallback option
+            bot.send_message(message.chat.id, "Unable to send the photo. Here is a default image:")
+            bot.send_photo(message.chat.id, 'https://cdn-icons-png.flaticon.com/512/482/482929.png')
         # Отправляем название и цену товара из данных
         bot.send_message(message.chat.id, f"🔹 Товар #{i + 1}: {item['title']}\nЦена: {item['price']} грн. \nТовар в магазине: {item['link']}")
 
@@ -109,8 +109,13 @@ def showProduct(message):
     if 0 <= number < len(data):
         # Получаем данные о товаре из списка data по номеру
         item = data[number]
-        # Отправляем фотографию товара по ссылке из данных
-        bot.send_photo(message.chat.id, item["image"])
+        try:
+            # Отправляем фотографию товара по ссылке из данных
+            bot.send_photo(message.chat.id, item["image"])
+        except Exception as e:
+            # Handle the exception by providing a fallback option
+            bot.send_message(message.chat.id, "Unable to send the photo. Here is a default image:")
+            bot.send_photo(message.chat.id, 'https://cdn-icons-png.flaticon.com/512/482/482929.png')
         # Отправляем название и цену товара из данных
         bot.send_message(message.chat.id, f"{item['title']}\nЦена: {item['price']} грн.\nТовар в магазине: {item['link']}")
     else:
